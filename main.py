@@ -9,7 +9,6 @@ from threading import Event
 
 import numpy as np
 from mss import mss
-from PIL import Image
 
 from yeelight_control import YeelightGroup
 
@@ -33,28 +32,25 @@ def load_config():
     with open(cfg_path, "r") as f:
         return json.load(f)
 
-def average_color(img):
-    # Downscale for speed
-    img_small = img.resize((64, 36), Image.BILINEAR)
-    arr = np.asarray(img_small, dtype=np.uint8)
-    # Ignore alpha if present
-    if arr.shape[-1] == 4:
-        arr = arr[:, :, :3]
-    # Compute mean
-    mean = arr.reshape(-1, 3).mean(axis=0)
+def average_color_raw(sct_img, down_x=64, down_y=36):
+    arr = np.frombuffer(sct_img.rgb, dtype=np.uint8)
+    arr = arr.reshape(sct_img.height, sct_img.width, 3)
+    # Downsample using slicing
+    step_y = max(1, arr.shape[0] // down_y)
+    step_x = max(1, arr.shape[1] // down_x)
+    arr_small = arr[::step_y, ::step_x, :]
+    mean = arr_small.mean(axis=(0,1))
     return tuple(int(x) for x in mean)
 
-def color_distance(c1, c2):
-    return np.linalg.norm(np.array(c1) - np.array(c2))
+def color_distance_sq(c1, c2):
+    return sum((a-b)**2 for a,b in zip(c1,c2))
 
 def pick_monitor(monitors, index):
-    # MSS: monitors[0] is full virtual screen; 1..n are per-monitor
     if index < 0: index = 0
     if index >= len(monitors): index = 0
     return monitors[index]
 
 def apply_crop(region, crop):
-    # crop keys: left, top, right, bottom (pixels)
     return {
         "left":  region["left"] + int(crop.get("left", 0)),
         "top":   region["top"] + int(crop.get("top", 0)),
@@ -68,15 +64,12 @@ def on_sigterm(sig, frame):
 def main():
     cfg = load_config()
 
-    # Put logs in the same folder as main.py (default)
     base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    log_path = os.environ.get("YEELIGHT_LOG", os.path.join(os.path.dirname(__file__), "yeelight-sync.log"))
+    log_path = os.environ.get("YEELIGHT_LOG", os.path.join(base_dir, "yeelight-sync.log"))
     setup_logging(log_path)
 
-    # Ensure we have an X11 DISPLAY in a user session
     disp = os.environ.get("DISPLAY")
     if not disp:
-        # Best-effort default
         os.environ["DISPLAY"] = ":0"
         logging.warning("DISPLAY not set; defaulting to :0")
 
@@ -87,13 +80,12 @@ def main():
 
     group = YeelightGroup(ips)
 
-    # Power on & set brightness at startup (optional)
     if cfg.get("startup_power_on", True):
         group.power_on()
     group.set_brightness(cfg.get("brightness", 80))
 
     min_interval = max(10, int(cfg.get("min_update_interval_ms", 80))) / 1000.0
-    threshold = float(cfg.get("color_change_threshold", 10))
+    threshold_sq = float(cfg.get("color_change_threshold", 10)) ** 2
     mon_index = int(cfg.get("monitor_index", 0))
     crop = cfg.get("crop", {"left":0, "top":0, "right":0, "bottom":0})
 
@@ -112,30 +104,20 @@ def main():
             while not STOP.is_set():
                 start = time.time()
                 sct_img = sct.grab(region)
-                # Convert to PIL Image
-                img = Image.frombytes("RGB", (sct_img.width, sct_img.height), sct_img.rgb)
-                color = average_color(img)
+                color = average_color_raw(sct_img)
 
                 now = time.time()
-                should_send = False
-                if last_color is None:
-                    should_send = True
-                else:
-                    if color_distance(color, last_color) >= threshold:
-                        should_send = True
-                if should_send and (now - last_send) >= min_interval:
-                    r, g, b = color
-                    group.set_rgb(r, g, b)
-                    last_color = color
-                    last_send = now
+                if last_color is None or color_distance_sq(color, last_color) >= threshold_sq:
+                    if (now - last_send) >= min_interval:
+                        r, g, b = color
+                        group.set_rgb(r, g, b)
+                        last_color = color
+                        last_send = now
 
-                # Simple pacing to ~min_interval or better
                 elapsed = time.time() - start
-                sleep_time = max(0.0, min_interval - elapsed * 0.5)
-                if sleep_time > 0:
-                    time.sleep(sleep_time)
+                time.sleep(max(0, min_interval - elapsed))
+
     finally:
-        # Do not force off here; let sleep/shutdown hooks manage power events
         group.close()
         logging.info("Exiting main loop.")
 
