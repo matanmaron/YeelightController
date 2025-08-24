@@ -20,6 +20,8 @@ This optimized version minimizes CPU usage and improves responsiveness.
 * Graceful shutdown via `SIGINT` or `SIGTERM`.
 * Automatic brightness and power-on at startup.
 * Configurable crop region for partial screen sync.
+* System sleep handling: bulbs turn off before sleep and restore after wake.
+* Full installer and uninstaller scripts for easy setup.
 
 ---
 
@@ -29,6 +31,8 @@ This optimized version minimizes CPU usage and improves responsiveness.
 * `numpy`
 * `mss`
 * `yeelight_control` (custom library for controlling Yeelight bulbs)
+* System: Linux with X11 or Wayland
+* Systemd for service management
 
 Install dependencies:
 
@@ -36,11 +40,29 @@ Install dependencies:
 pip install numpy mss
 ```
 
+Ensure your user session can access the display (X11 or Wayland). For Wayland, running via XWayland is recommended.
+
+---
+
+## Installation
+
+Run the provided installer script:
+
+```bash
+bash install.sh
+```
+
+This will:
+
+* Create a systemd user service to run `main.py` on login.
+* Set up a system sleep hook to turn off bulbs before sleep and restore them after wake.
+* Start the Yeelight Controller service automatically.
+
 ---
 
 ## Configuration
 
-Create a `config.json` in the same folder as `main.py`:
+Create or edit `config.json` in the same folder as `main.py`:
 
 ```json
 {
@@ -69,13 +91,31 @@ Create a `config.json` in the same folder as `main.py`:
 
 ## Usage
 
-Run the script:
+Run the script manually:
 
 ```bash
 python3 main.py
 ```
 
-Gracefully stop with `Ctrl+C` or send a `SIGTERM`.
+Or let the systemd service handle it automatically. Stop the service with:
+
+```bash
+systemctl --user stop yeelight-controller.service
+```
+
+Gracefully stop manual runs with `Ctrl+C` or send a `SIGTERM`.
+
+---
+
+## Uninstallation
+
+To remove the service and sleep hook:
+
+```bash
+bash uninstall.sh
+```
+
+This will disable the systemd service and delete the sleep hook.
 
 ---
 
