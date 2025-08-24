@@ -1,6 +1,6 @@
 {
   "devices": [
-    { "ip": "172.30.1.78" }
+    { "ip": "192.168.0.1" }
   ],
   "brightness": 80,
   "min_update_interval_ms": 80,
