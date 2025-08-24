@@ -10,6 +10,8 @@ This document serves as a GitHub-ready page (README-style) for the Yeelight Scre
 
 This optimized version minimizes CPU usage and improves responsiveness.
 
+**Important:** Currently, the script only supports X11 or Wayland sessions with XWayland enabled. Native Wayland screen capture is not supported.
+
 ---
 
 ## Features
@@ -31,7 +33,7 @@ This optimized version minimizes CPU usage and improves responsiveness.
 * `numpy`
 * `mss`
 * `yeelight_control` (custom library for controlling Yeelight bulbs)
-* System: Linux with X11 or Wayland
+* Linux with X11 or Wayland (XWayland required for Wayland sessions)
 * Systemd for service management
 
 Install dependencies:
@@ -40,7 +42,7 @@ Install dependencies:
 pip install numpy mss
 ```
 
-Ensure your user session can access the display (X11 or Wayland). For Wayland, running via XWayland is recommended.
+Ensure your user session can access the display (X11 or XWayland).
 
 ---
 
@@ -125,6 +127,7 @@ This will disable the systemd service and delete the sleep hook.
 * Downsamples captured image to 64x36 pixels for performance.
 * Uses squared distance for faster color change detection.
 * Maintains consistent update pacing.
+* Only supports X11 or Wayland with XWayland; native Wayland not supported.
 
 ---
 
