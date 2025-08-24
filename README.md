@@ -1,67 +1,90 @@
-# Yeelight Tray Controller
+# Yeelight Screen Sync
 
-A simple Python GUI app to control your Yeelight strip based on your screen color. Features include Start/Stop, IP input, minimize to tray, and persistent IP storage.
+This document serves as a GitHub-ready page (README-style) for the Yeelight Screen Sync project.
+
+---
+
+## Overview
+
+`Yeelight Screen Sync` is a Python script to synchronize your Yeelight smart bulbs with the average color of your monitor. The script captures the screen, computes the dominant color, and updates the bulbs in real-time.
+
+This optimized version minimizes CPU usage and improves responsiveness.
 
 ---
 
 ## Features
 
-* Start/Stop the Yeelight color sync.
-* Minimize the app to the system tray.
-* Right-click tray menu to Quit the app.
-* Click tray icon to restore the app.
-* Enter and save Yeelight IP for future sessions.
+* Real-time screen color synchronization.
+* Multi-monitor support.
+* Configurable color change threshold and update interval.
+* Graceful shutdown via `SIGINT` or `SIGTERM`.
+* Automatic brightness and power-on at startup.
+* Configurable crop region for partial screen sync.
 
 ---
 
-## Dependencies
+## Requirements
 
-* Python 3.10+
-* PyQt6
-* Pillow
-* numpy
+* Python 3.8+
+* `numpy`
+* `mss`
+* `yeelight_control` (custom library for controlling Yeelight bulbs)
 
-Install dependencies with pip:
+Install dependencies:
 
+```bash
+pip install numpy mss
 ```
-pip install PyQt6 Pillow numpy
+
+---
+
+## Configuration
+
+Create a `config.json` in the same folder as `main.py`:
+
+```json
+{
+  "devices": [
+    {"ip": "192.168.1.100"},
+    {"ip": "192.168.1.101"}
+  ],
+  "brightness": 80,
+  "min_update_interval_ms": 80,
+  "color_change_threshold": 10,
+  "monitor_index": 0,
+  "crop": {"left":0, "top":0, "right":0, "bottom":0},
+  "startup_power_on": true
+}
 ```
+
+* **devices**: list of Yeelight device IPs.
+* **brightness**: initial brightness (0-100).
+* **min\_update\_interval\_ms**: minimum update interval in milliseconds.
+* **color\_change\_threshold**: threshold for color changes to trigger updates.
+* **monitor\_index**: which monitor to capture (0 = full virtual screen, 1+ = monitor index).
+* **crop**: crop region in pixels.
+* **startup\_power\_on**: whether to turn on bulbs at startup.
 
 ---
 
 ## Usage
 
-1. Clone or download the repository.
-2. Open a terminal and navigate to the project folder.
-3. Run the app:
+Run the script:
 
-```
-python yeelight.py
+```bash
+python3 main.py
 ```
 
-4. Enter your Yeelight IP at the top and press **Start**.
-5. Minimize to tray or press **Stop** to stop syncing.
+Gracefully stop with `Ctrl+C` or send a `SIGTERM`.
 
 ---
 
-## Building with PyInstaller
+## Optimization Notes
 
-To create a standalone executable:
-
-```
-pyinstaller --onefile --windowed yeelight.py
-```
-
-The executable will be created in the `dist/` folder.
-
----
-
-## Limitations
-
-* Only works with Yeelight devices supporting the LAN control protocol.
-* Only tested on Linux and Windows.
-* Must have network access to the Yeelight device.
-* Tray functionality may vary by OS.
+* Avoids PIL for faster color computation.
+* Downsamples captured image to 64x36 pixels for performance.
+* Uses squared distance for faster color change detection.
+* Maintains consistent update pacing.
 
 ---
 
