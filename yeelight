@@ -1,0 +1,18 @@
+#!/bin/bash
+# Runs as root on suspend/resume. We call the on/off helpers directly.
+# Python path and script path are explicit to avoid env issues.
+PY=/usr/bin/python3
+BASE=/opt/yeelight-sync
+
+case "$1" in
+  pre)
+    # before suspend/hibernate → turn lights off
+    $PY "$BASE/off.py"
+    ;;
+  post)
+    # after resume/thaw → turn lights back on (brightness from config)
+    $PY "$BASE/on.py"
+    ;;
+esac
+
+exit 0

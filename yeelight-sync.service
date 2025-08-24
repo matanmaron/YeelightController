@@ -1,0 +1,14 @@
+[Unit]
+Description=Yeelight Sync Service
+After=network.target
+
+[Service]
+# Get working directory from the installer script
+WorkingDirectory=%h/YeelightController
+ExecStart=/usr/bin/python3 %h/YeelightController/main.py
+Restart=always
+User=%u
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

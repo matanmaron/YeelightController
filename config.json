@@ -1,0 +1,12 @@
+{
+  "devices": [
+    { "ip": "172.30.1.78" }
+  ],
+  "brightness": 80,
+  "min_update_interval_ms": 80,
+  "color_change_threshold": 10,
+  "monitor_index": 0,
+  "crop": { "left": 0, "top": 0, "right": 0, "bottom": 0 },
+  "startup_power_on": true,
+  "log_file": "/var/log/yeelight-sync.log"
+}
